@@ -34,6 +34,20 @@ internal static partial class Program
 
     private static void Main(string[] args)
     {
+        // Clean up any leftover .backup from a previous self-update
+        try
+        {
+            string selfDir = Path.GetDirectoryName(Environment.ProcessPath) ?? string.Empty;
+            foreach (string backup in Directory.GetFiles(selfDir, "*.backup"))
+            {
+                File.Delete(backup);
+            }
+        }
+        catch
+        {
+            // Best effort — ignore if still locked
+        }
+
         try
         {
             Parser parser = new Parser(config => config.HelpWriter = null);

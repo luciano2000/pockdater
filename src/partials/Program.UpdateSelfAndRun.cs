@@ -68,11 +68,11 @@ internal static partial class Program
                 UseShellExecute = false
             };
 
-            Process p = Process.Start(pInfo);
+            Process.Start(pInfo);
 
-            p!.WaitForExit();
-
-            exitCode = p.ExitCode;
+            // Exit the parent immediately so Windows releases the lock on the
+            // .backup file. The child process will delete it on its next startup.
+            exitCode = 0;
         }
         catch (Exception ex)
         {
