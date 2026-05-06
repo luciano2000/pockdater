@@ -37,6 +37,10 @@ internal static partial class Program
                 WriteRainbow(welcome);
                 Console.ResetColor();
                 Console.WriteLine(sponsorLinks);
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine(RETROGAMER_CREDIT);
+                Console.ResetColor();
+                Console.WriteLine();
                 Console.WriteLine(rateLimitMessage);
                 Console.WriteLine();
                 Console.WriteLine("Choose your destiny:");

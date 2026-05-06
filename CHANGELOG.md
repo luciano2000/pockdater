@@ -2,6 +2,17 @@
 
 All notable changes to Pockdater are documented in this file.
 
+## [1.1.0] - 2026-05-06
+
+### Fixed
+
+- **Settings menu crash**: The Settings menu was crashing because `download_timeout_seconds` (an `int`) carries a `[Description]` attribute and the menu reflection was trying to cast it to `bool`. Fixed by filtering to boolean-only properties.
+
+### Changed
+
+- **New ASCII art banners**: All welcome screen banners are now Pockdater-themed, replacing the inherited pupdate pop-culture messages.
+- **Retrogamer Brasil credit**: The main menu header and `--help` output now display a credit for Retrogamer Brasil (@souretrogamer | www.retrogamer.com.br | "Play like a kid from the 80s.") highlighted in cyan.
+
 ## [1.0.0] - 2026-05-06
 
 ### Summary

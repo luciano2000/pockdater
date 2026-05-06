@@ -14,6 +14,7 @@ internal static partial class Program
         var type = typeof(Config);
         var menuItems =
             from property in type.GetProperties()
+            where property.PropertyType == typeof(bool)
             let attribute = property.GetCustomAttributes(typeof(DescriptionAttribute), true)
             where attribute.Length == 1
             select (property.Name, ((DescriptionAttribute)attribute[0]).Description);

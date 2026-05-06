@@ -80,5 +80,10 @@ Usage:
   help                     Display more information on a specific command.
 
   version                  Display version information.
+
+---
+Pockdater is brought to you by Retrogamer Brasil
+@souretrogamer  |  www.retrogamer.com.br
+"Play like a kid from the 80s."
 """;
 }
