@@ -1,7 +1,7 @@
 
 # Pockdater
 
-[![Current Release](https://img.shields.io/github/v/release/lucianorocha/pockdater?label=Current%20Release)](https://github.com/lucianorocha/pockdater/releases/latest) ![Downloads](https://img.shields.io/github/downloads/lucianorocha/pockdater/latest/total?label=Downloads) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![Current Release](https://img.shields.io/github/v/release/luciano2000/pockdater?label=Current%20Release)](https://github.com/luciano2000/pockdater/releases/latest) ![Downloads](https://img.shields.io/github/downloads/luciano2000/pockdater/latest/total?label=Downloads) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
 
 > **Pockdater** is a community fork of [pupdate](https://github.com/mattpannella/pupdate) by Matt Pannella, with bug fixes and reliability improvements. Full credit to the original author for the excellent foundation.
 
@@ -18,7 +18,7 @@ A free utility for updating openFPGA cores, firmware, and related assets on your
 
 A browsable list of available cores is here: [openFPGA cores inventory](https://openfpga-cores-inventory.github.io/analogue-pocket/).
 
-Please use the [latest release](https://github.com/lucianorocha/pockdater/releases/latest/) before reporting issues; older builds are not supported.
+Please use the [latest release](https://github.com/luciano2000/pockdater/releases/latest/) before reporting issues; older builds are not supported.
 
 ---
 

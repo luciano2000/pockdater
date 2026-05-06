@@ -10,7 +10,7 @@
     <Copyright>2025 Pockdater Contributors</Copyright>
     <Authors>Pockdater Contributors</Authors>
     <Product>Pockdater</Product>
-    <RepositoryUrl>https://github.com/lucianorocha/pockdater</RepositoryUrl>
+    <RepositoryUrl>https://github.com/luciano2000/pockdater</RepositoryUrl>
     <RootNamespace>Pockdater</RootNamespace>
     <NoWarn>NU1605</NoWarn>
   </PropertyGroup>

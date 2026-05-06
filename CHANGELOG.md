@@ -28,7 +28,7 @@ Initial release of **Pockdater** — a fork of [pupdate](https://github.com/matt
 - Namespace changed from `Pannella` to `Pockdater`.
 - Settings file renamed from `pupdate_settings.json` to `pockdater_settings.json` (old filename migrated automatically on first run).
 - Version reset to `1.0.0`.
-- Repository URLs updated to `lucianorocha/pockdater`.
+- Repository URLs updated to `luciano2000/pockdater`.
 
 ### Credits
 
