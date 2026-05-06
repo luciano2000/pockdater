@@ -1,0 +1,97 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: Release
+    strategy:
+      matrix:
+        kind: ['macOS', 'windows', 'linux']
+        include:
+          - kind: macOS
+            os: macos-latest
+            target: osx
+            arm: true
+          - kind: windows
+            os: windows-latest
+            target: win
+            arm: true
+          - kind: linux
+            os: ubuntu-latest
+            target: linux
+            arm: true
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 9.0.100
+
+      - name: Build
+        shell: bash
+        run: |
+          tag=$(git describe --tags --abbrev=0)
+          release_name="App-$tag-${{ matrix.target }}"
+          trim="False"
+          #if [ "${{ matrix.target }}" == "linux" ]; then
+          #  trim="False"
+          #fi
+
+          # Build everything
+          dotnet publish pockdater.csproj -r ${{ matrix.target }}-x64 --self-contained true -c Release -o "$release_name" --consoleloggerparameters:ErrorsOnly -p:PublishTrimmed=$trim -p:TrimMode=partial
+          if ${{ matrix.arm }}; then
+            if [ "${{ matrix.target }}" == "win" ]; then
+              mv ${release_name}/pockdater.exe ${release_name}/pockdater_x64.exe
+            else
+              mv ${release_name}/pockdater ${release_name}/pockdater_x64
+            fi
+
+            dotnet publish pockdater.csproj -r ${{ matrix.target }}-arm64 --self-contained true -c Release -o "$release_name" --consoleloggerparameters:ErrorsOnly -p:PublishTrimmed=$trim -p:TrimMode=partial
+            if [ "${{ matrix.target }}" == "win" ]; then
+              mv ${release_name}/pockdater.exe ${release_name}/pockdater_arm64.exe
+            else
+              mv ${release_name}/pockdater ${release_name}/pockdater_arm64
+            fi
+
+            if [ "${{ matrix.target }}" == "linux" ]; then
+              dotnet publish pockdater.csproj -r ${{ matrix.target }}-arm --self-contained true -c Release -o "$release_name" --consoleloggerparameters:ErrorsOnly -p:PublishTrimmed=$trim -p:TrimMode=partial
+              mv ${release_name}/pockdater ${release_name}/pockdater_arm32
+            fi
+          fi
+
+          # Pack files
+          if [ "${{ matrix.target }}" == "win" ]; then
+            # Pack to zip for Windows
+            mv "./${release_name}/pockdater_x64.exe" "./${release_name}/pockdater.exe"
+            7z a -tzip "pockdater_win.zip" "./${release_name}/pockdater.exe"
+            7z a -tzip "pockdater_win_arm64.zip" "./${release_name}/pockdater_arm64.exe"
+          elif [ "${{ matrix.target }}" == "osx" ]; then
+            cd $release_name
+            lipo -create -output pockdater pockdater_arm64 pockdater_x64
+            rm pockdater_arm64
+            rm pockdater_x64
+            zip "../pockdater_mac.zip" "pockdater"; cd ..;
+          else
+            cd $release_name
+            mv pockdater_x64 pockdater
+            zip "../pockdater_linux.zip" "pockdater"
+            zip "../pockdater_linux_arm64.zip" "pockdater_arm64"
+            zip "../pockdater_linux_arm32.zip" "pockdater_arm32"
+            cd ..
+          fi
+
+          # Delete output directory
+          rm -r "$release_name"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "pockdater*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.API_TOKEN }}

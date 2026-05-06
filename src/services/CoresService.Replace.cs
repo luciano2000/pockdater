@@ -1,0 +1,68 @@
+using Newtonsoft.Json;
+using Pockdater.Models.OpenFPGA_Cores_Inventory.V3;
+using Pockdater.Models.Updater;
+
+namespace Pockdater.Services;
+
+public partial class CoresService
+{
+    public Substitute[] GetSubstitutes(string identifier)
+    {
+        string file = Path.Combine(this.installPath, "Cores", identifier, UPDATERS_FILE);
+
+        if (!File.Exists(file))
+        {
+            return null;
+        }
+
+        string json = File.ReadAllText(file);
+        Updaters config = JsonConvert.DeserializeObject<Updaters>(json);
+
+        return config?.previous;
+    }
+
+    public void ReplaceCheck(string identifier)
+    {
+        var replaces = this.GetSubstitutes(identifier);
+
+        if (replaces != null)
+        {
+            foreach (var replacement in replaces)
+            {
+                string newIdentifier = $"{replacement.author}.{replacement.shortname}";
+                Core core = new Core { id = newIdentifier, platform_id = replacement.platform_id };
+
+                if (this.IsInstalled(core.id))
+                {
+                    Replace(core, identifier);
+                    this.Uninstall(core.id, core.platform_id);
+                    WriteMessage($"Uninstalled {newIdentifier}. It was replaced by this core.");
+                }
+            }
+        }
+    }
+
+    private void Replace(Core core, string identifier)
+    {
+        string path = Path.Combine(this.installPath, "Assets", core.platform_id, core.id);
+
+        if (Directory.Exists(path))
+        {
+            Directory.Move(path, Path.Combine(this.installPath, "Assets", core.platform_id, identifier));
+        }
+
+        path = Path.Combine(this.installPath, "Saves", core.platform_id, core.id);
+
+        if (Directory.Exists(path))
+        {
+            Directory.Move(path, Path.Combine(this.installPath, "Saves", core.platform_id, identifier));
+        }
+
+        path = Path.Combine(this.installPath, "Settings", core.id);
+
+        if (Directory.Exists(path))
+        {
+            Directory.Move(path, Path.Combine(this.installPath, "Settings", identifier));
+        }
+    }
+}

@@ -1,0 +1,92 @@
+using Pockdater.Models.Events;
+using Pockdater.Services;
+
+namespace Pockdater.Helpers;
+
+public static class ServiceHelper
+{
+    public static string UpdateDirectory { get; private set; } // move off this
+    public static string SettingsDirectory { get; private set; } // for retrodriven's app
+    public static string TempDirectory { get; private set; }
+    public static string CacheDirectory { get; private set; }
+    public static CoresService CoresService { get; private set; }
+    public static SettingsService SettingsService { get; private set ;}
+    public static PlatformImagePacksService PlatformImagePacksService { get; private set; }
+    public static FirmwareService FirmwareService { get; private set; }
+    public static ArchiveService ArchiveService { get; private set; }
+    public static AssetsService AssetsService { get; private set; }
+    public static EventHandler<StatusUpdatedEventArgs> StatusUpdated { get; private set; }
+    public static EventHandler<UpdateProcessCompleteEventArgs> UpdateProcessComplete { get; private set; }
+
+    private static bool IS_INITIALIZED;
+
+    public static void Initialize(string path, string settingsPath, EventHandler<StatusUpdatedEventArgs> statusUpdated = null,
+        EventHandler<UpdateProcessCompleteEventArgs> updateProcessComplete = null, bool forceReload = false)
+    {
+        if (!IS_INITIALIZED || forceReload)
+        {
+            IS_INITIALIZED = true;
+            UpdateDirectory = path;
+            SettingsDirectory = settingsPath;
+            SettingsService = new SettingsService(settingsPath);
+            HttpHelper.Instance.DefaultDownloadTimeout = SettingsService.Config.download_timeout_seconds;
+            TempDirectory = SettingsService.Config.temp_directory ?? Path.GetTempPath();
+            CacheDirectory = string.IsNullOrEmpty(SettingsService.Config.archive_cache_location)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "pockdater", "cache")
+                : SettingsService.Config.archive_cache_location;
+            ArchiveService = new ArchiveService(
+                SettingsService.Config.archives,
+                SettingsService.Credentials?.internet_archive,
+                SettingsService.Config.crc_check,
+                SettingsService.Config.use_custom_archive,
+                SettingsService.Debug.show_stack_traces,
+                SettingsService.Config.cache_archive_files,
+                CacheDirectory);
+            AssetsService = new AssetsService(
+                SettingsService.Config.use_local_blacklist,
+                SettingsService.Debug.show_stack_traces);
+            CoresService = new CoresService(path, SettingsService, ArchiveService, AssetsService);
+            SettingsService.InitializeCoreSettings(CoresService.Cores);
+            SettingsService.Save();
+            PlatformImagePacksService = new PlatformImagePacksService(path, SettingsService.Config.github_token,
+                SettingsService.Config.use_local_image_packs);
+            FirmwareService = new FirmwareService();
+
+            if (statusUpdated != null)
+            {
+                PlatformImagePacksService.StatusUpdated += statusUpdated;
+                FirmwareService.StatusUpdated += statusUpdated;
+                CoresService.StatusUpdated += statusUpdated;
+                ArchiveService.StatusUpdated += statusUpdated;
+                StatusUpdated = statusUpdated;
+            }
+
+            if (updateProcessComplete != null)
+            {
+                CoresService.UpdateProcessComplete += updateProcessComplete;
+                UpdateProcessComplete = updateProcessComplete;
+            }
+        }
+    }
+
+    public static void ReloadSettings()
+    {
+        SettingsService = new SettingsService(SettingsDirectory, CoresService.Cores);
+        HttpHelper.Instance.DefaultDownloadTimeout = SettingsService.Config.download_timeout_seconds;
+        TempDirectory = SettingsService.Config.temp_directory ?? Path.GetTempPath();
+        // reload the archive service, in case that setting has changed
+        CacheDirectory = string.IsNullOrEmpty(SettingsService.Config.archive_cache_location)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "pockdater", "cache")
+            : SettingsService.Config.archive_cache_location;
+        ArchiveService = new ArchiveService(
+            SettingsService.Config.archives,
+            SettingsService.Credentials?.internet_archive,
+            SettingsService.Config.crc_check,
+            SettingsService.Config.use_custom_archive,
+            SettingsService.Debug.show_stack_traces,
+            SettingsService.Config.cache_archive_files,
+            CacheDirectory);
+        CoresService = new CoresService(UpdateDirectory, SettingsService, ArchiveService, AssetsService);
+        CoresService.StatusUpdated += StatusUpdated;
+    }
+}

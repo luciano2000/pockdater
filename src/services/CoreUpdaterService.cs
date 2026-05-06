@@ -1,0 +1,392 @@
+using Newtonsoft.Json;
+using Pockdater.Helpers;
+using Pockdater.Models;
+using Pockdater.Models.Events;
+using Pockdater.Models.Extras;
+using Pockdater.Models.OpenFPGA_Cores_Inventory.V3;
+using File = System.IO.File;
+using AnalogueCore = Pockdater.Models.Analogue.Core.Core;
+
+namespace Pockdater.Services;
+
+public class CoreUpdaterService : BaseProcess
+{
+    private readonly string installPath;
+    private readonly List<Core> cores;
+    private readonly FirmwareService firmwareService;
+    private SettingsService settingsService;
+    private CoresService coresService;
+
+    public CoreUpdaterService(
+        string path,
+        List<Core> cores,
+        FirmwareService firmwareService,
+        SettingsService settingsService,
+        CoresService coresService)
+    {
+        this.installPath = path;
+        this.cores = cores;
+        this.firmwareService = firmwareService;
+        this.settingsService = settingsService;
+        this.coresService = coresService;
+
+        Directory.CreateDirectory(Path.Combine(path, "Cores"));
+    }
+
+    public void BuildInstanceJson(bool overwrite = false, string coreName = null)
+    {
+        foreach (Core core in this.cores)
+        {
+            if (this.coresService.CheckInstancePackager(core.id) && (coreName == null || coreName == core.id))
+            {
+                WriteMessage(core.id);
+                this.coresService.BuildInstanceJson(core.id, overwrite);
+                Divide();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Run the full openFPGA core download and update process
+    /// </summary>
+    public void RunUpdates(string[] ids = null, bool clean = false)
+    {
+        List<Dictionary<string, string>> installed = new List<Dictionary<string, string>>();
+        List<string> installedAssets = new List<string>();
+        List<string> skippedAssets = new List<string>();
+        List<string> missingLicenses = new List<string>();
+        string firmwareDownloaded = null;
+
+        if (this.settingsService.Config.backup_saves)
+        {
+            AssetsService.BackupSaves(this.installPath, this.settingsService.Config.backup_saves_location);
+            AssetsService.BackupMemories(this.installPath, this.settingsService.Config.backup_saves_location);
+        }
+
+        if (this.settingsService.Config.download_firmware && ids == null)
+        {
+            if (this.firmwareService != null)
+            {
+                firmwareDownloaded = this.firmwareService.UpdateFirmware(this.installPath);
+            }
+            else
+            {
+                WriteMessage("Firmware Service is missing.");
+            }
+
+            Divide();
+        }
+
+        this.coresService.RetrieveKeys();
+
+        foreach (var core in this.cores.Where(core => ids == null || ids.Any(id => id == core.id)))
+        {
+            var coreSettings = this.settingsService.GetCoreSettings(core.id);
+
+            try
+            {
+                //if its installed, it's an analogizer variant, and the setting is on
+                bool force = this.coresService.IsInstalled(core.id) && 
+                    this.settingsService.Config.no_analogizer_variants && this.coresService.IsAnalogizerVariant(core.id);
+                if (coreSettings.skip || force)
+                {
+                    DeleteCore(core, force);
+                    continue;
+                }
+
+                var requiresLicense = this.coresService.RequiresLicense(core.id);
+                core.license_slot_filename = requiresLicense.Item4;
+                core.license_slot_id = requiresLicense.Item2;
+                core.license_slot_platform_id_index = requiresLicense.Item3;
+
+                if (core.requires_license && !this.coresService.CheckLicenseFile(core))
+                {
+                    missingLicenses.Add(core.id);
+                    continue; // skip if you don't have the key
+                }
+
+                if (core.id == null)
+                {
+                    WriteMessage("Core Name is required. Skipping.");
+                    continue;
+                }
+
+                WriteMessage("Checking Core: " + core.id);
+
+                PocketExtra pocketExtra = this.coresService.GetPocketExtra(core.id);
+                bool isPocketExtraCombinationPlatform = coreSettings.pocket_extras &&
+                                                        pocketExtra is { type: PocketExtraType.combination_platform };
+                string mostRecentRelease;
+
+                if (core.version == null && coreSettings.pocket_extras)
+                {
+                    mostRecentRelease = this.coresService.GetMostRecentRelease(pocketExtra);
+                }
+                else
+                {
+                    mostRecentRelease = core.version;
+                    pocketExtra = null;
+                }
+
+                bool isVersionPinned = !string.IsNullOrEmpty(coreSettings.pinned_version);
+
+                if (isVersionPinned)
+                {
+                    WriteMessage($"Core is pinned to version {coreSettings.pinned_version}.");
+                    mostRecentRelease = coreSettings.pinned_version;
+                }
+
+                Dictionary<string, object> results;
+
+                if (mostRecentRelease == null && pocketExtra == null && !coreSettings.pocket_extras)
+                {
+                    WriteMessage("No releases found. Skipping.");
+
+                    if (requiresLicense.Item1)
+                    {
+                        this.coresService.CopyLicense(core);
+                    }
+
+                    results = this.coresService.DownloadAssets(core);
+                    installedAssets.AddRange(results["installed"] as List<string>);
+                    skippedAssets.AddRange(results["skipped"] as List<string>);
+
+                    if ((bool)results["missingLicense"])
+                    {
+                        missingLicenses.Add(core.id);
+                    }
+
+                    JotegoRename(core);
+                    Divide();
+                    continue;
+                }
+
+                WriteMessage(mostRecentRelease + " is the most recent release, checking local core...");
+
+                if (this.coresService.IsInstalled(core.id))
+                {
+                    AnalogueCore localCore = this.coresService.ReadCoreJson(core.id);
+                    string localVersion = isPocketExtraCombinationPlatform
+                        ? coreSettings.pocket_extras_version
+                        : localCore.metadata.version;
+
+                    if (localVersion != null)
+                    {
+                        WriteMessage("Local core found: " + localVersion);
+                    }
+
+                    if (mostRecentRelease != localVersion || clean)
+                    {
+                        WriteMessage("Updating core...");
+                    }
+                    else
+                    {
+                        if (requiresLicense.Item1)
+                        {
+                            this.coresService.CopyLicense(core);
+                        }
+
+                        if (coreSettings.pocket_extras &&
+                            pocketExtra != null &&
+                            pocketExtra.type != PocketExtraType.combination_platform)
+                        {
+                            WriteMessage("Pocket Extras found: " + coreSettings.pocket_extras_version);
+                            var version = this.coresService.GetMostRecentRelease(pocketExtra);
+                            WriteMessage(version + " is the most recent release...");
+
+                            if (coreSettings.pocket_extras_version != version)
+                            {
+                                WriteMessage("Updating Pocket Extras...");
+                                this.coresService.GetPocketExtra(pocketExtra, this.installPath, false);
+                            }
+                            else
+                            {
+                                WriteMessage("Up to date. Skipping Pocket Extras.");
+                            }
+                        }
+
+                        results = this.coresService.DownloadAssets(core);
+
+                        if (!coreSettings.pocket_extras)
+                        {
+                            JotegoRename(core);
+                        }
+
+                        installedAssets.AddRange(results["installed"] as List<string>);
+                        skippedAssets.AddRange(results["skipped"] as List<string>);
+
+                        if ((bool)results["missingLicense"])
+                        {
+                            missingLicenses.Add(core.id);
+                        }
+
+                        WriteMessage("Up to date. Skipping core.");
+                        Divide();
+                        continue;
+                    }
+                }
+                else
+                {
+                    WriteMessage("Downloading core...");
+                }
+
+                if (isVersionPinned && core.repository != null)
+                {
+                    string pinnedUrl = this.coresService.GetDownloadUrlForVersion(core, coreSettings.pinned_version);
+
+                    if (pinnedUrl == null)
+                    {
+                        WriteMessage($"Could not find release for pinned version '{coreSettings.pinned_version}'in the releases list. Skipping.");
+                        Divide();
+                        continue;
+                    }
+
+                    core.download_url = pinnedUrl;
+                }
+
+                if (isPocketExtraCombinationPlatform)
+                {
+                    if (clean && this.coresService.IsInstalled(core.id))
+                    {
+                        this.coresService.Delete(core.id, core.platform_id);
+                    }
+
+                    this.coresService.GetPocketExtra(pocketExtra, this.installPath, false);
+
+                    Dictionary<string, string> summary = new Dictionary<string, string>
+                    {
+                        { "version", mostRecentRelease },
+                        { "core", core.id },
+                        { "platform", core.platform.name }
+                    };
+
+                    installed.Add(summary);
+                }
+                else if (this.coresService.Install(core, clean))
+                {
+                    Dictionary<string, string> summary = new Dictionary<string, string>
+                    {
+                        { "version", mostRecentRelease },
+                        { "core", core.id },
+                        { "platform", core.platform.name }
+                    };
+
+                    installed.Add(summary);
+                }
+                else if (coreSettings.pocket_extras &&
+                         pocketExtra != null &&
+                         pocketExtra.type != PocketExtraType.combination_platform)
+                {
+                    WriteMessage("Pocket Extras found: " + coreSettings.pocket_extras_version);
+                    var version = this.coresService.GetMostRecentRelease(pocketExtra);
+                    WriteMessage(version + " is the most recent release...");
+
+                    if (coreSettings.pocket_extras_version != version)
+                    {
+                        WriteMessage("Updating Pocket Extras...");
+                        this.coresService.GetPocketExtra(pocketExtra, this.installPath, false);
+                    }
+                    else
+                    {
+                        WriteMessage("Up to date. Skipping Pocket Extras.");
+                    }
+                }
+
+                JotegoRename(core);
+
+                var isJtBetaCore = this.coresService.RequiresLicense(core.id);
+
+                if (isJtBetaCore.Item1)
+                {
+                    core.license_slot_id = isJtBetaCore.Item2;
+                    core.license_slot_platform_id_index = isJtBetaCore.Item3;
+                    core.license_slot_filename = isJtBetaCore.Item4;
+                    this.coresService.CopyLicense(core);
+                }
+
+                results = this.coresService.DownloadAssets(core);
+                installedAssets.AddRange(results["installed"] as List<string>);
+                skippedAssets.AddRange(results["skipped"] as List<string>);
+
+                if ((bool)results["missingLicense"])
+                {
+                    missingLicenses.Add(core.id);
+                }
+
+                WriteMessage("Installation complete.");
+                Divide();
+            }
+            catch (Exception ex)
+            {
+                WriteMessage("Uh oh something went wrong.");
+                WriteMessage(this.settingsService.Debug.show_stack_traces
+                    ? ex.ToString()
+                    : Util.GetExceptionMessage(ex));
+            }
+        }
+
+        this.coresService.RefreshLocalCores();
+        this.coresService.RefreshInstalledCores();
+
+        UpdateProcessCompleteEventArgs args = new UpdateProcessCompleteEventArgs
+        {
+            Message = "Update Process Complete.",
+            InstalledCores = installed,
+            InstalledAssets = installedAssets,
+            SkippedAssets = skippedAssets,
+            MissingLicenses = missingLicenses,
+            FirmwareUpdated = firmwareDownloaded,
+            SkipOutro = false
+        };
+
+        OnUpdateProcessComplete(args);
+    }
+
+    private void JotegoRename(Core core)
+    {
+        if (this.settingsService.Config.fix_jt_names &&
+            this.settingsService.GetCoreSettings(core.id).platform_rename &&
+            core.id.Contains("jotego"))
+        {
+            core.platform_id = core.id.Split('.')[1];
+
+            string path = Path.Combine(this.installPath, "Platforms", core.platform_id + ".json");
+            string json = File.ReadAllText(path);
+            Dictionary<string, Platform> data = JsonConvert.DeserializeObject<Dictionary<string, Platform>>(json);
+            Platform platform = data["platform"];
+
+            if (this.coresService.RenamedPlatformFiles.TryGetValue(core.platform_id, out string value) &&
+                platform.name == core.platform_id)
+            {
+                WriteMessage("Updating JT Platform Name...");
+                HttpHelper.Instance.DownloadFile(value, path);
+                WriteMessage("Complete");
+            }
+        }
+    }
+
+    public void DeleteCore(Core core, bool force = false, bool nuke = false)
+    {
+        // If the core was a pocket extra or local the core inventory won't have it's platform id.
+        // Load it from the core.json file if it's missing.
+        if (string.IsNullOrEmpty(core.platform_id))
+        {
+            var analogueCore = this.coresService.ReadCoreJson(core.id);
+
+            core.platform_id = analogueCore?.metadata.platform_ids[0];
+        }
+
+        // If the platform id is still missing, it's a pocket extra that was already deleted, so skip it.
+        if (!string.IsNullOrEmpty(core.platform_id) &&
+            (this.settingsService.Config.delete_skipped_cores || force))
+        {
+            this.coresService.Uninstall(core.id, core.platform_id, nuke);
+        }
+    }
+
+    public void ReloadSettings()
+    {
+        this.settingsService = ServiceHelper.SettingsService;
+        this.coresService = ServiceHelper.CoresService;
+    }
+}

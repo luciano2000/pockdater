@@ -1,0 +1,157 @@
+using System.Runtime.InteropServices;
+using Pockdater.Helpers;
+using Pockdater.Models.Extras;
+using Pockdater.Models.PocketLibraryImages;
+using Pockdater.Services;
+using GithubRelease = Pockdater.Models.Github.Release;
+
+namespace Pockdater;
+
+internal static partial class Program
+{
+    // return true if newer version is available
+    private static bool CheckVersion(string path)
+    {
+        try
+        {
+            List<GithubRelease> releases = GithubApiService.GetReleases(USER, REPOSITORY,
+                ServiceHelper.SettingsService.Config.github_token);
+
+            string tagName = releases[0].tag_name;
+            string v = SemverUtil.FindSemver(tagName);
+
+            if (v != null)
+            {
+                bool check = SemverUtil.SemverCompare(v, VERSION);
+
+                if (check)
+                {
+#if NET7_0
+                    Console.WriteLine($"A new version {v} is available.");
+#else
+                    Console.WriteLine($"A new version {v} is available. Downloading now...");
+
+                    string url = string.Format(RELEASE_URL, tagName, SYSTEM_OS_PLATFORM);
+                    string saveLocation = Path.Combine(path, "pockdater.zip");
+
+                    HttpHelper.Instance.DownloadFile(url, saveLocation);
+
+                    Console.WriteLine("Download complete.");
+                    Console.WriteLine(saveLocation);
+#endif
+                    Console.WriteLine("Go to " + releases[0].html_url + " for a change log.");
+                }
+                else
+                {
+                    Console.WriteLine("Up to date.");
+                }
+
+                return check;
+            }
+
+            return false;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine(ServiceHelper.SettingsService.Debug.show_stack_traces
+                ? ex
+                : Util.GetExceptionMessage(ex));
+           
+            return false;
+        }
+    }
+
+    private static void PrintPocketExtraInfo(PocketExtra extra)
+    {
+        Console.WriteLine(extra.id);
+        Console.WriteLine(string.IsNullOrEmpty(extra.name) // name is not required for additional assets
+            ? $"  {extra.core_identifiers[0]}"
+            : $"  {extra.name}");
+        Console.WriteLine(Util.WordWrap(extra.description, 80, "    "));
+        Console.WriteLine($"    More info: https://github.com/{extra.github_user}/{extra.github_repository}");
+
+        foreach (var additionalLink in extra.additional_links)
+        {
+            Console.WriteLine($"                {additionalLink}");
+        }
+
+        Console.WriteLine();
+    }
+
+    private static void PrintPocketLibraryImageInfo(PocketLibraryImage image)
+    {
+        Console.WriteLine(image.id);
+        Console.WriteLine($"  {image.menu_label ?? image.id}");
+
+        if (!string.IsNullOrWhiteSpace(image.description))
+            Console.WriteLine(Util.WordWrap(image.description, 80, "    "));
+
+        if (!string.IsNullOrWhiteSpace(image.github_user) && !string.IsNullOrWhiteSpace(image.github_repository))
+            Console.WriteLine($"    https://github.com/{image.github_user.Trim()}/{image.github_repository.Trim()}");
+
+        Console.WriteLine();
+    }
+
+    private static void FunFacts()
+    {
+        if (ServiceHelper.CoresService.InstalledCores.Count == 0)
+        {
+            return;
+        }
+
+        string[] sleepSupported = ServiceHelper.CoresService.InstalledCores
+            .Where(c => ServiceHelper.CoresService.ReadCoreJson(c.id).framework.sleep_supported)
+            .Select(c => c.id)
+            .ToArray();
+
+        if (sleepSupported.Any())
+        {
+            string list = string.Join(", ", sleepSupported);
+            string wrapped = Util.WordWrap(list, 75, "    ");
+
+            // Console.WriteLine();
+            Console.WriteLine("Fun fact! The ONLY cores that support save states and sleep are the following:");
+            Console.WriteLine(wrapped);
+            Console.WriteLine("Please don't bother the developers of the other cores about this feature. It's a lot\nof work and most likely will not be coming.");
+        }
+    }
+
+    private static string GetSystemPlatform()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Architecture arch = RuntimeInformation.ProcessArchitecture;
+
+            return arch switch
+            {
+                Architecture.Arm64 => "win_arm64",
+                _ => "win"
+            };
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return "mac";
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            Architecture arch = RuntimeInformation.ProcessArchitecture;
+
+            return arch switch
+            {
+                Architecture.Arm64 => "linux_arm64",
+                Architecture.Arm => "linux_arm32",
+                _ => "linux"
+            };
+        }
+
+        return string.Empty;
+    }
+
+    private static void Pause()
+    {
+        Console.WriteLine("Press any key to continue.");
+        Console.ReadKey(true);
+    }
+}

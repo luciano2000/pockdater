@@ -1,0 +1,16 @@
+// ReSharper disable InconsistentNaming
+// ReSharper disable CollectionNeverUpdated.Global
+
+using Newtonsoft.Json;
+
+namespace Pockdater.Models.Analogue.Video;
+
+public class Video
+{
+    public string magic { get; set; }
+
+    public List<ScalerMode> scaler_modes { get; set; }
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public List<DisplayMode> display_modes { get; set; }
+}

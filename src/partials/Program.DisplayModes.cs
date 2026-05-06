@@ -1,0 +1,89 @@
+using Pockdater.Helpers;
+using Pockdater.Models.DisplayModes;
+
+namespace Pockdater;
+
+internal static partial class Program
+{
+    private static void EnableDisplayModes(List<string> coreIdentifiers = null, List<DisplayMode> displayModes = null,
+        bool isCurated = false)
+    {
+        AskAboutDisplayModesSetting();
+
+        string answer = null;
+
+        if (ServiceHelper.SettingsService.Config.display_modes_option == "ask")
+        {
+            answer = AskAboutDisplayModes();
+        }
+
+        coreIdentifiers ??= ServiceHelper.CoresService.Cores
+            .Where(core => !ServiceHelper.SettingsService.GetCoreSettings(core.id).skip)
+            .Select(core => core.id)
+            .ToList();
+
+        foreach (var coreIdentifier in coreIdentifiers)
+        {
+            try
+            {
+                Console.WriteLine($"Updating display modes for {coreIdentifier}");
+                ServiceHelper.CoresService.AddDisplayModes(coreIdentifier, displayModes, isCurated,
+                    merge: answer == "merge");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Uh oh something went wrong.");
+                Console.WriteLine(ServiceHelper.SettingsService.Debug.show_stack_traces
+                    ? ex
+                    : Util.GetExceptionMessage(ex));
+            }
+        }
+
+        ServiceHelper.SettingsService.Save();
+
+        Console.WriteLine("Finished.");
+    }
+
+    private static void ResetDisplayModes(List<string> coreIdentifiers = null)
+    {
+        coreIdentifiers ??= ServiceHelper.CoresService.InstalledCoresWithCustomDisplayModes.Select(c => c.id)
+            .ToList();
+
+        foreach (var coreIdentifier in coreIdentifiers)
+        {
+            try
+            {
+                var coreSettings = ServiceHelper.SettingsService.GetCoreSettings(coreIdentifier);
+
+                Console.WriteLine($"Resetting display modes for {coreIdentifier}");
+
+                if (string.IsNullOrWhiteSpace(coreSettings.original_display_modes))
+                {
+                    ServiceHelper.CoresService.ClearDisplayModes(coreIdentifier);
+                }
+                else
+                {
+                    var originalDisplayModes = coreSettings.original_display_modes.Split(',');
+                    var displayModes = ServiceHelper.CoresService.ConvertDisplayModes(originalDisplayModes);
+
+                    ServiceHelper.CoresService.AddDisplayModes(coreIdentifier, displayModes);
+                }
+
+                coreSettings.display_modes = false;
+                coreSettings.original_display_modes = null;
+                coreSettings.selected_display_modes = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Uh oh something went wrong.");
+                Console.WriteLine(ServiceHelper.SettingsService.Debug.show_stack_traces
+                    ? ex
+                    : Util.GetExceptionMessage(ex));
+            }
+        }
+
+        ServiceHelper.SettingsService.Save();
+
+        Console.WriteLine("Finished.");
+    }
+}

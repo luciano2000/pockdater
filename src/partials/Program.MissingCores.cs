@@ -1,0 +1,62 @@
+using Pockdater.Helpers;
+using Pockdater.Models.OpenFPGA_Cores_Inventory.V3;
+
+namespace Pockdater;
+
+internal static partial class Program
+{
+    private static void CheckForMissingCores(bool enableMissingCores)
+    {
+        if (ServiceHelper.SettingsService.GetMissingCores().Any())
+        {
+            Console.WriteLine("\nNew cores found since the last run.");
+            AskAboutNewCores();
+
+            string downloadNewCores = ServiceHelper.SettingsService.Config.download_new_cores?.ToLowerInvariant();
+
+            switch (downloadNewCores)
+            {
+                case "yes":
+                    Console.WriteLine("The following cores have been enabled:");
+
+                    foreach (Core core in ServiceHelper.SettingsService.GetMissingCores())
+                    {
+                        Console.WriteLine($"- {core.id}");
+                    }
+
+                    ServiceHelper.SettingsService.EnableMissingCores();
+                    ServiceHelper.SettingsService.Save();
+                    break;
+
+                case "no":
+                    Console.WriteLine("The following cores have been disabled:");
+
+                    foreach (Core core in ServiceHelper.SettingsService.GetMissingCores())
+                    {
+                        Console.WriteLine($"- {core.id}");
+                    }
+
+                    ServiceHelper.SettingsService.DisableMissingCores();
+                    ServiceHelper.SettingsService.Save();
+                    break;
+
+                default:
+                    ServiceHelper.SettingsService.EnableMissingCores();
+
+                    if (enableMissingCores)
+                    {
+                        ServiceHelper.SettingsService.Save();
+                    }
+                    else
+                    {
+                        RunCoreSelector(ServiceHelper.SettingsService.GetMissingCores(), "New cores are available!", true);
+                    }
+
+                    break;
+            }
+
+            // Is reloading the settings file necessary?
+            ServiceHelper.ReloadSettings();
+        }
+    }
+}
