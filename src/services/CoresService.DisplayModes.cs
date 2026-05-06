@@ -6,7 +6,7 @@ namespace Pockdater.Services;
 
 public partial class CoresService
 {
-    private const string DISPLAY_MODES_END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/display_modes.json";
+    private const string DISPLAY_MODES_END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/display_modes.json";
     private const string DISPLAY_MODES_FILE = "display_modes.json";
 
     private List<DisplayMode> allDisplayModesList;

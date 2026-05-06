@@ -10,11 +10,11 @@ internal static partial class Program
 
     private static readonly string SYSTEM_OS_PLATFORM = GetSystemPlatform();
 
-    private const string USER = "lucianorocha";
+    private const string USER = "luciano2000";
 
     private const string REPOSITORY = "pockdater";
 
-    private const string RELEASE_URL = "https://github.com/lucianorocha/pockdater/releases/download/{0}/pockdater_{1}.zip";
+    private const string RELEASE_URL = "https://github.com/luciano2000/pockdater/releases/download/{0}/pockdater_{1}.zip";
 
     private static readonly string[] WELCOME_MESSAGES =
     {

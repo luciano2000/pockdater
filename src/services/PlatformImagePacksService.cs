@@ -8,7 +8,7 @@ namespace Pockdater.Services;
 
 public class PlatformImagePacksService : Base
 {
-    private const string END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/image_packs.json";
+    private const string END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/image_packs.json";
 
     private readonly bool useLocalImagePacks;
     private readonly string installPath;

@@ -10,7 +10,7 @@ namespace Pockdater.Services;
 
 public partial class CoresService
 {
-    private const string POCKET_LIBRARY_IMAGES_END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/pocket_library_images.json";
+    private const string POCKET_LIBRARY_IMAGES_END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/pocket_library_images.json";
     private const string POCKET_LIBRARY_IMAGES_FILE = "pocket_library_images.json";
     private const string LIBRARY_IMAGE_SET_ARCHIVE_FILE = "Library_Image_Set_v1.0.zip";
     private const string POCKET_LIBRARY_IMAGES_EXTRACT_PATH_SEGMENT = "temp";

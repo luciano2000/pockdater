@@ -6,7 +6,7 @@ namespace Pockdater.Services;
 
 public partial class CoresService
 {
-    private const string IGNORE_INSTANCE_JSON_END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/ignore_instance.json";
+    private const string IGNORE_INSTANCE_JSON_END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/ignore_instance.json";
     private const string IGNORE_INSTANCE_JSON_FILE = "ignore_instance.json";
 
     private static List<string> IGNORE_INSTANCE_JSON;

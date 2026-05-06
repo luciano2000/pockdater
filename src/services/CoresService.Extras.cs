@@ -11,7 +11,7 @@ namespace Pockdater.Services;
 
 public partial class CoresService
 {
-    private const string POCKET_EXTRAS_END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/pocket_extras.json";
+    private const string POCKET_EXTRAS_END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/pocket_extras.json";
     private const string POCKET_EXTRAS_FILE = "pocket_extras.json";
 
     private List<PocketExtra> pocketExtrasList;

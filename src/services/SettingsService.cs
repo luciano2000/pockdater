@@ -9,7 +9,7 @@ public class SettingsService
 {
     private const string OLD_SETTINGS_FILENAME = "pupdate_settings.json";
     private const string SETTINGS_FILENAME = "pockdater_settings.json";
-    private const string ROMSETS_ENDPOINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/refs/heads/main/romsets.json";
+    private const string ROMSETS_ENDPOINT = "https://raw.githubusercontent.com/luciano2000/pockdater/refs/heads/main/romsets.json";
 
     private readonly Settings settings;
     private readonly string settingsFile;

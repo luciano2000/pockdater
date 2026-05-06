@@ -10,7 +10,7 @@ namespace Pockdater.Services;
 
 public class AssetsService
 {
-    private const string BLACKLIST_END_POINT = "https://raw.githubusercontent.com/lucianorocha/pockdater/main/blacklist.json";
+    private const string BLACKLIST_END_POINT = "https://raw.githubusercontent.com/luciano2000/pockdater/main/blacklist.json";
     private const string BLACKLIST_FILE = "blacklist.json";
 
     private readonly bool useLocalBlacklist;
