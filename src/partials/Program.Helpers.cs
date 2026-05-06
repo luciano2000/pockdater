@@ -32,12 +32,12 @@ internal static partial class Program
                     Console.WriteLine($"A new version {v} is available. Downloading now...");
 
                     string url = string.Format(RELEASE_URL, tagName, SYSTEM_OS_PLATFORM);
-                    string saveLocation = Path.Combine(path, "pockdater.zip");
+                    // Download to temp so we don't write to the SD card or a read-only location
+                    string saveLocation = Path.Combine(Path.GetTempPath(), "pockdater.zip");
 
                     HttpHelper.Instance.DownloadFile(url, saveLocation);
 
                     Console.WriteLine("Download complete.");
-                    Console.WriteLine(saveLocation);
 #endif
                     Console.WriteLine("Go to " + releases[0].html_url + " for a change log.");
                 }

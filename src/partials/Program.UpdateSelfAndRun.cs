@@ -16,11 +16,14 @@ internal static partial class Program
             execName += ".exe";
         }
 
-        string execLocation = Path.Combine(directory, execName);
+        // Resolve the actual running exe path — not the install path (-p flag).
+        string execLocation = Environment.ProcessPath ?? Path.Combine(directory, execName);
+        string execDir = Path.GetDirectoryName(execLocation) ?? directory;
         string backupName = $"{execName}.backup";
-        string backupLocation = Path.Combine(directory, backupName);
+        string backupLocation = Path.Combine(execDir, backupName);
         const string updateName = "pockdater.zip";
-        string updateLocation = Path.Combine(directory, updateName);
+        // Zip was downloaded to temp (matching CheckVersion)
+        string updateLocation = Path.Combine(Path.GetTempPath(), updateName);
 
         int exitCode = int.MinValue;
 
@@ -39,9 +42,9 @@ internal static partial class Program
             Console.WriteLine($"Renaming {execLocation} to {backupLocation}");
             File.Move(execLocation, backupLocation, true);
 
-            // Extract update
-            Console.WriteLine($"Extracting {updateLocation} to {directory}");
-            ZipHelper.ExtractToDirectory(updateLocation, directory, true);
+            // Extract update into the exe's own folder
+            Console.WriteLine($"Extracting {updateLocation} to {execDir}");
+            ZipHelper.ExtractToDirectory(updateLocation, execDir, true);
 
             // Execute
             Console.WriteLine($"Executing {execLocation}");
