@@ -34,6 +34,15 @@ internal static partial class Program
 
     private static void Main(string[] args)
     {
+        // Ensure Ctrl+C always terminates the process, even during blocking I/O
+        // or while ConsoleMenu is intercepting keyboard input.
+        Console.CancelKeyPress += static (_, e) =>
+        {
+            e.Cancel = true; // prevent default SIGINT handling (which can be swallowed)
+            Console.WriteLine("\nInterrupted.");
+            Environment.Exit(130); // 130 = standard Ctrl+C exit code
+        };
+
         // Clean up any leftover .backup from a previous self-update
         try
         {
