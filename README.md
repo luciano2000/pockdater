@@ -1,7 +1,7 @@
 
 # Pockdater
 
-[![Current Release](https://img.shields.io/github/v/release/luciano2000/pockdater?label=Current%20Release)](https://github.com/luciano2000/pockdater/releases/latest) ![Downloads](https://img.shields.io/github/downloads/luciano2000/pockdater/latest/total?label=Downloads) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![Current Release](https://img.shields.io/github/v/release/luciano2000/pockdater?label=Current%20Release)](https://github.com/luciano2000/pockdater/releases/latest) ![Downloads](https://img.shields.io/github/downloads/luciano2000/pockdater/latest/total?label=Downloads) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?business=PJ5JW3V7FABRC&no_recurring=0&currency_code=USD)
 
 > **Pockdater** is a community fork of [pupdate](https://github.com/mattpannella/pupdate) by Matt Pannella, with bug fixes and reliability improvements. Full credit to the original author for the excellent foundation.
 
