@@ -34,11 +34,14 @@ internal static partial class Program
             EnableAlphabet = true,
             WriteHeaderAction = () =>
             {
-                WriteHeaderWithQR();
+                WriteRainbow(welcome);
                 Console.ResetColor();
                 Console.WriteLine(sponsorLinks);
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine(RETROGAMER_CREDIT);
+                Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("  If this software was useful to you, consider donating — select \"Support Retrogamer Brasil\" in the menu.");
                 Console.ResetColor();
                 Console.WriteLine();
                 Console.WriteLine(rateLimitMessage);
