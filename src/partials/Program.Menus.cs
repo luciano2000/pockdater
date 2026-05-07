@@ -34,7 +34,7 @@ internal static partial class Program
             EnableAlphabet = true,
             WriteHeaderAction = () =>
             {
-                WriteRainbow(welcome);
+                WriteHeaderWithQR();
                 Console.ResetColor();
                 Console.WriteLine(sponsorLinks);
                 Console.ForegroundColor = ConsoleColor.Cyan;
