@@ -14,6 +14,9 @@ internal static partial class Program
 
     private const string RELEASE_URL = "https://github.com/luciano2000/pockdater/releases/download/{0}/pockdater_{1}.zip";
 
+    private const string DONATION_URL =
+        "https://www.paypal.com/donate/?business=PJ5JW3V7FABRC&no_recurring=0&currency_code=USD";
+
     private const string RETROGAMER_CREDIT =
         "Retrogamer Brasil  |  @souretrogamer  |  www.retrogamer.com.br" +
         "\n\"Play like a kid from the 80s.\"";

@@ -730,6 +730,10 @@ internal static partial class Program
                 ServiceHelper.ReloadSettings();
                 coreUpdaterService.ReloadSettings();
             })
+            .Add("Support Retrogamer Brasil", _ =>
+            {
+                ShowDonationQR();
+            })
             .Add("Exit", ConsoleMenu.Close);
 
         #endregion
