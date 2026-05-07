@@ -338,6 +338,9 @@ internal static partial class Program
 
     private static void coreUpdater_StatusUpdated(object sender, StatusUpdatedEventArgs e)
     {
+        // ConsoleMenu sets TreatControlCAsInput = true (clears ISIG on Linux), which
+        // suppresses Ctrl+C. Reset it here so SIGINT is raised during long operations.
+        Console.TreatControlCAsInput = false;
         Console.WriteLine(e.Message);
     }
 

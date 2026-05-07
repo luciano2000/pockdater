@@ -27,27 +27,15 @@ internal static partial class Program
 
         string sponsorLinks = GetRandomSponsorLinks();
 
+        ConsoleHelper.EnableAnsiOnWindows();
+        string cachedHeader = BuildRainbowHeader(welcome, sponsorLinks ?? string.Empty, rateLimitMessage);
+
         var menuConfig = new MenuConfig
         {
             Selector = "=>",
             EnableWriteTitle = false,
             EnableAlphabet = true,
-            WriteHeaderAction = () =>
-            {
-                WriteRainbow(welcome);
-                Console.ResetColor();
-                Console.WriteLine(sponsorLinks);
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(RETROGAMER_CREDIT);
-                Console.ResetColor();
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("  If this software was useful to you, consider donating — select \"Support Retrogamer Brasil\" in the menu.");
-                Console.ResetColor();
-                Console.WriteLine();
-                Console.WriteLine(rateLimitMessage);
-                Console.WriteLine();
-                Console.WriteLine("Choose your destiny:");
-            },
+            WriteHeaderAction = () => Console.Write(cachedHeader),
             SelectedItemBackgroundColor = Console.ForegroundColor,
             SelectedItemForegroundColor = Console.BackgroundColor
         };
@@ -778,6 +766,39 @@ internal static partial class Program
         }
 
         Console.WriteLine();
+    }
+
+    private static string BuildRainbowHeader(string welcome, string sponsorLinks, string rateLimitMessage)
+    {
+        const string reset  = "\x1b[0m";
+        const string cyan   = "\x1b[36m";
+        const string yellow = "\x1b[33m";
+        string[] ansiColors = { "\x1b[31m", "\x1b[33m", "\x1b[32m", "\x1b[36m", "\x1b[34m", "\x1b[35m" };
+        var sb = new System.Text.StringBuilder();
+        int colorIndex = 0;
+
+        foreach (char c in welcome)
+        {
+            if (!char.IsWhiteSpace(c))
+            {
+                sb.Append(ansiColors[colorIndex % ansiColors.Length]);
+                colorIndex++;
+            }
+            sb.Append(c);
+        }
+
+        sb.Append(reset).Append('\n');
+        sb.Append(sponsorLinks).Append('\n');
+        sb.Append(cyan).Append(RETROGAMER_CREDIT).Append(reset).Append('\n');
+        sb.Append(yellow)
+          .Append("  If this software was useful to you, consider donating — select \"Support Retrogamer Brasil\" in the menu.")
+          .Append(reset).Append('\n');
+        sb.Append('\n');
+        sb.Append(rateLimitMessage).Append('\n');
+        sb.Append('\n');
+        sb.Append("Choose your destiny:\n");
+
+        return sb.ToString();
     }
 
     private static string MenuItemName(string title, bool value, bool requiresLicense = false)
